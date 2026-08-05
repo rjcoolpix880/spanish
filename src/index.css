@@ -589,29 +589,79 @@ body {
   box-shadow: var(--shadow-sm);
 }
 
-.icon-btn:hover:not(:disabled) {
-  border-color: var(--primary-blue-border);
-  color: var(--primary-blue);
-  background-color: var(--primary-blue-light);
+.icon-btn {
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
 }
 
-.icon-btn-selected {
-  border-color: var(--primary-blue);
-  background-color: var(--primary-blue);
+@media (hover: hover) {
+  .icon-btn:hover:not(:disabled) {
+    border-color: var(--primary-blue-border);
+    color: var(--primary-blue);
+    background-color: var(--primary-blue-light);
+  }
+}
+
+.icon-btn-selected,
+.icon-btn-selected:disabled {
+  border-color: var(--primary-blue) !important;
+  background-color: var(--primary-blue) !important;
   color: #ffffff !important;
+  opacity: 1 !important;
   box-shadow: var(--shadow-md);
 }
 
-.icon-btn-correct {
+.icon-btn-selected .icon-btn-label,
+.icon-btn-selected svg {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+}
+
+.icon-btn-correct,
+.icon-btn-correct:disabled {
   border-color: var(--primary-green) !important;
   background-color: var(--primary-green) !important;
   color: #ffffff !important;
+  opacity: 1 !important;
 }
 
-.icon-btn-incorrect {
+.icon-btn-correct .icon-btn-label,
+.icon-btn-correct svg {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+}
+
+.icon-btn-correct-alt,
+.icon-btn-correct-alt:disabled {
+  border: 2px dashed var(--primary-green) !important;
+  background-color: var(--primary-green-light) !important;
+  color: var(--primary-green) !important;
+  opacity: 1 !important;
+  font-weight: 700;
+}
+
+.icon-btn-correct-alt .icon-btn-label,
+.icon-btn-correct-alt svg {
+  color: var(--primary-green) !important;
+  stroke: var(--primary-green) !important;
+}
+
+.icon-btn-incorrect,
+.icon-btn-incorrect:disabled {
   border-color: var(--primary-red) !important;
   background-color: var(--primary-red) !important;
   color: #ffffff !important;
+  opacity: 1 !important;
+}
+
+.icon-btn-incorrect .icon-btn-label,
+.icon-btn-incorrect svg {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+}
+
+button:disabled {
+  cursor: default;
 }
 
 .icon-btn-label {
@@ -681,6 +731,40 @@ body {
   color: var(--primary-red);
 }
 
+/* Alternate Match Note in Feedback Card */
+.feedback-alternate-note {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background-color: var(--bg-card);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  border: 1px solid var(--primary-green);
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  color: var(--text-main);
+}
+
+.alternate-note-title {
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.alternate-note-list {
+  margin-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.alternate-match-item {
+  color: var(--text-muted);
+}
+
+.alternate-match-item strong {
+  color: var(--text-main);
+}
+
 /* Diagnostic Box for Incorrect Answers */
 .diagnostic-box {
   width: 100%;
@@ -696,7 +780,7 @@ body {
 .diagnostic-block {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 6px;
 }
 
 .diagnostic-header {
@@ -718,6 +802,19 @@ body {
   font-size: 0.88rem;
   color: var(--text-main);
   font-style: italic;
+}
+
+.diagnostic-match-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.diagnostic-grammar-tag {
+  font-family: var(--font-sans);
+  font-size: 0.78rem;
+  color: var(--text-subtle);
 }
 
 .diagnostic-divider {

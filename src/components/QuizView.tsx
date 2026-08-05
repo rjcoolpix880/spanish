@@ -77,6 +77,7 @@ export const QuizView: React.FC<QuizViewProps> = ({ settings, onOpenSettings }) 
 
   useEffect(() => {
     loadNextQuestion();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (!currentPrompt) return null;
@@ -99,21 +100,38 @@ export const QuizView: React.FC<QuizViewProps> = ({ settings, onOpenSettings }) 
     }
   };
 
+  // Find all valid (tense, person) combinations that produce currentPrompt.conjugatedText
+  const allMatches: { tense: TenseKey; person: PersonKey }[] = [];
+  if (currentPrompt) {
+    (Object.keys(currentPrompt.verb.conjugations) as TenseKey[]).forEach((tKey) => {
+      (Object.keys(currentPrompt.verb.conjugations[tKey]) as PersonKey[]).forEach((pKey) => {
+        const entry = currentPrompt.verb.conjugations[tKey][pKey];
+        if (entry.conjugated.toLowerCase().trim() === currentPrompt.conjugatedText.toLowerCase().trim()) {
+          allMatches.push({ tense: tKey, person: pKey });
+        }
+      });
+    });
+  }
+
   const isCorrect =
-    selection.selectedTense === currentPrompt.targetTense &&
-    selection.selectedPerson === currentPrompt.targetPerson;
+    selection.selectedTense !== null &&
+    selection.selectedPerson !== null &&
+    allMatches.some((m) => m.tense === selection.selectedTense && m.person === selection.selectedPerson);
+
+  const otherMatches = isCorrect
+    ? allMatches.filter(
+        (m) => !(m.tense === selection.selectedTense && m.person === selection.selectedPerson)
+      )
+    : [];
+
+  const validTenses = new Set(allMatches.map((m) => m.tense));
+  const validPersons = new Set(allMatches.map((m) => m.person));
 
   // Determine what user's selection would conjugate to for diagnostic feedback
   const userSelectedEntry =
     selection.selectedTense && selection.selectedPerson
       ? currentPrompt.verb.conjugations[selection.selectedTense][selection.selectedPerson]
       : null;
-
-  const targetEnglishPhrase = getEnglishContextualPhrase(
-    currentPrompt.verb,
-    currentPrompt.targetTense,
-    currentPrompt.targetPerson
-  );
 
   const userPickedEnglishPhrase =
     selection.selectedTense && selection.selectedPerson
@@ -204,14 +222,25 @@ export const QuizView: React.FC<QuizViewProps> = ({ settings, onOpenSettings }) 
               const p = PERSONS_LIST.find((item) => item.key === personKey)!;
               const label = getPersonLabel(p.key);
               const isSelected = selection.selectedPerson === p.key;
-              const isTarget = showFeedback && currentPrompt.targetPerson === p.key;
-              const isWrongChoice = showFeedback && isSelected && !isTarget;
+              const isValidPerson = validPersons.has(p.key);
 
               let btnClass = 'icon-btn icon-btn-person';
               if (isSelected) btnClass += ' icon-btn-selected';
+
               if (showFeedback) {
-                if (isTarget) btnClass += ' icon-btn-correct';
-                else if (isWrongChoice) btnClass += ' icon-btn-incorrect';
+                if (isSelected) {
+                  if (isValidPerson) {
+                    btnClass += ' icon-btn-correct';
+                  } else {
+                    btnClass += ' icon-btn-incorrect';
+                  }
+                } else if (isValidPerson) {
+                  if (isCorrect) {
+                    btnClass += ' icon-btn-correct-alt';
+                  } else {
+                    btnClass += ' icon-btn-correct';
+                  }
+                }
               }
 
               return (
@@ -239,14 +268,25 @@ export const QuizView: React.FC<QuizViewProps> = ({ settings, onOpenSettings }) 
               const t = TENSES_LIST.find((item) => item.key === tenseKey)!;
               const label = getTenseLabel(t.key);
               const isSelected = selection.selectedTense === t.key;
-              const isTarget = showFeedback && currentPrompt.targetTense === t.key;
-              const isWrongChoice = showFeedback && isSelected && !isTarget;
+              const isValidTense = validTenses.has(t.key);
 
               let btnClass = 'icon-btn icon-btn-tense';
               if (isSelected) btnClass += ' icon-btn-selected';
+
               if (showFeedback) {
-                if (isTarget) btnClass += ' icon-btn-correct';
-                else if (isWrongChoice) btnClass += ' icon-btn-incorrect';
+                if (isSelected) {
+                  if (isValidTense) {
+                    btnClass += ' icon-btn-correct';
+                  } else {
+                    btnClass += ' icon-btn-incorrect';
+                  }
+                } else if (isValidTense) {
+                  if (isCorrect) {
+                    btnClass += ' icon-btn-correct-alt';
+                  } else {
+                    btnClass += ' icon-btn-correct';
+                  }
+                }
               }
 
               return (
@@ -280,6 +320,31 @@ export const QuizView: React.FC<QuizViewProps> = ({ settings, onOpenSettings }) 
             <span className="feedback-result-title">{isCorrect ? 'Correct' : 'Incorrect'}</span>
           </div>
 
+          {/* Correct with Alternate Meanings Note */}
+          {isCorrect && otherMatches.length > 0 && (
+            <div className="feedback-alternate-note">
+              <span className="alternate-note-title">
+                💡 <strong>Note:</strong> "{currentPrompt.conjugatedText}" can also mean:
+              </span>
+              <ul className="alternate-note-list">
+                {otherMatches.map((alt) => {
+                  const altTenseInfo = TENSES_LIST.find((t) => t.key === alt.tense)!;
+                  const altPersonInfo = PERSONS_LIST.find((p) => p.key === alt.person)!;
+                  const altEnglishPhrase = getEnglishContextualPhrase(
+                    currentPrompt.verb,
+                    alt.tense,
+                    alt.person
+                  );
+                  return (
+                    <li key={`${alt.tense}-${alt.person}`} className="alternate-match-item">
+                      <strong>"{altEnglishPhrase}"</strong> ({altTenseInfo.properName} – {altPersonInfo.spanishLabel})
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
+
           {!isCorrect && (
             <div className="diagnostic-box">
               <div className="diagnostic-block">
@@ -291,9 +356,27 @@ export const QuizView: React.FC<QuizViewProps> = ({ settings, onOpenSettings }) 
               <div className="diagnostic-divider" />
 
               <div className="diagnostic-block">
-                <span className="diagnostic-header">Correct answer:</span>
+                <span className="diagnostic-header">
+                  {allMatches.length > 1 ? 'Correct answer options for this word:' : 'Correct answer:'}
+                </span>
                 <span className="diagnostic-spanish-word">"{currentPrompt.conjugatedText}"</span>
-                <span className="diagnostic-english-phrase">{targetEnglishPhrase}</span>
+                {allMatches.map((match) => {
+                  const matchTenseInfo = TENSES_LIST.find((t) => t.key === match.tense)!;
+                  const matchPersonInfo = PERSONS_LIST.find((p) => p.key === match.person)!;
+                  const matchEnglishPhrase = getEnglishContextualPhrase(
+                    currentPrompt.verb,
+                    match.tense,
+                    match.person
+                  );
+                  return (
+                    <div key={`${match.tense}-${match.person}`} className="diagnostic-match-item">
+                      <span className="diagnostic-english-phrase">"{matchEnglishPhrase}"</span>
+                      <span className="diagnostic-grammar-tag">
+                        ({matchTenseInfo.properName} – {matchPersonInfo.spanishLabel})
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
